@@ -1,0 +1,39 @@
+<?php
+$escape = $this->plugin('escapeHtml');
+$siteTitle = $site->title();
+$this->headMeta()->setCharset('utf-8');
+$this->headMeta()->appendName('viewport', 'width=device-width, initial-scale=1');
+$this->headTitle($siteTitle)->setSeparator(' · ');
+$this->headLink()->appendStylesheet($this->assetUrl('css/lisvault.css'));
+$this->headScript()->appendFile($this->assetUrl('js/lisvault.js'));
+$identity = $this->identity();
+?>
+<?= $this->doctype() ?>
+<html lang="<?= $escape($this->lang()) ?>">
+<head><?= $this->headMeta() ?><?= $this->headTitle() ?><?= $this->headLink() ?><?= $this->headStyle() ?></head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+    <div class="header-inner">
+        <a class="brand" href="<?= $escape($site->url()) ?>"><span class="brand-mark" aria-hidden="true">LV</span><span>LISVault<small>Library &amp; Information Studies</small></span></a>
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav">Menu</button>
+        <nav id="main-nav" aria-label="Main navigation"><ul>
+            <li><a href="<?= $escape($site->url()) ?>">Home</a></li>
+            <li><a href="<?= $this->url('site/resource', ['controller' => 'item', 'action' => 'browse'], [], true) ?>">Browse resources</a></li>
+            <li><a href="<?= $this->url('site/resource', ['controller' => 'item-set', 'action' => 'browse'], [], true) ?>">Modules</a></li>
+            <li><a href="<?= $this->url('site/resource', ['controller' => 'item', 'action' => 'search'], [], true) ?>">Search</a></li>
+        </ul></nav>
+        <div class="account-links">
+            <?php if ($identity): ?>
+                <span class="welcome">Hello, <?= $escape($identity->getName()) ?></span><a href="<?= $this->url('logout') ?>">Log out</a>
+            <?php else: ?>
+                <a href="<?= $this->url('login') ?>">Student login</a>
+            <?php endif; ?>
+        </div>
+    </div>
+</header>
+<main id="content" class="site-content"><?= $this->content ?></main>
+<footer class="site-footer"><div><strong>LISVault</strong><span>Digital learning resources for Library and Information Studies.</span></div><span>Powered by Omeka S</span></footer>
+<?= $this->headScript() ?>
+</body>
+</html>

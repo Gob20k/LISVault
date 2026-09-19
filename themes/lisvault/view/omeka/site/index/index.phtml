@@ -1,0 +1,33 @@
+<?php
+$escape = $this->plugin('escapeHtml');
+$url = $this->plugin('url');
+$modules = $this->api()->search('item_sets', ['limit' => 17, 'sort_by' => 'title', 'sort_order' => 'asc'])->getContent();
+?>
+<section class="hero" aria-labelledby="welcome-title">
+    <div class="eyebrow">Academic digital library</div>
+    <h1 id="welcome-title">Find the LIS learning resources you need.</h1>
+    <p>LISVault brings study guides, lecture material, books and past papers together for Library and Information Studies students.</p>
+    <form class="search-form" method="get" action="<?= $url('site/resource', ['controller' => 'item', 'action' => 'browse'], [], true) ?>">
+        <label class="sr-only" for="resource-search">Search resources</label>
+        <input id="resource-search" name="fulltext_search" type="search" placeholder="Search titles and descriptions">
+        <button type="submit">Search</button>
+    </form>
+</section>
+<section class="section" aria-labelledby="years-title">
+    <h2 id="years-title">Browse by academic year</h2>
+    <p class="section-intro">Start with the level that matches your current studies.</p>
+    <div class="year-grid">
+        <?php foreach (['First Year', 'Second Year', 'Third Year'] as $year): ?>
+        <article class="year-card"><h3><?= $escape($year) ?></h3><p>Explore modules and their learning resources.</p><a href="<?= $url('site/resource', ['controller' => 'item', 'action' => 'browse'], ['query' => ['property' => [['property' => 14, 'type' => 'eq', 'text' => $year]]]], true) ?>">View resources</a></article>
+        <?php endforeach; ?>
+    </div>
+</section>
+<section class="section" aria-labelledby="modules-title">
+    <h2 id="modules-title">Explore modules</h2>
+    <p class="section-intro">Modules are managed in LISVault and update here automatically.</p>
+    <div class="module-grid">
+        <?php foreach ($modules as $module): ?>
+        <article class="module-card"><h3><a href="<?= $escape($module->siteUrl($site->slug(), 'show')) ?>"><?= $escape($module->displayTitle()) ?></a></h3><p><?= $escape($module->displayDescription()) ?></p></article>
+        <?php endforeach; ?>
+    </div>
+</section>

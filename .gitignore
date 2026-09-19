@@ -1,0 +1,50 @@
+# ==========================================
+# LISVault / Omeka S
+# ==========================================
+
+# Local database configuration
+/config/database.ini
+
+# Logs
+*.log
+logs/
+
+# Cache / temporary files
+/cache/
+/tmp/
+/data/logs/
+/data/tmp/
+
+# Omeka generated files
+/data/files/
+/data/images/
+
+# PHP / server temporary files
+*.tmp
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / editor files
+.vscode/
+.idea/
+
+# Local environment files
+.env
+.env.*
+
+# PHPUnit / test coverage
+.phpunit.result.cache
+coverage/
+
+# Composer generated/vendor files
+/vendor/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*

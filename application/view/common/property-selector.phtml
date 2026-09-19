@@ -1,0 +1,45 @@
+<?php
+$translate = $this->plugin('translate');
+$escape = $this->plugin('escapeHtml');
+?>
+<div id="property-selector" class='selector sidebar <?php echo $state; ?>'>
+    <a href="#" class="mobile-only sidebar-close o-icon-close"><span class="screen-reader-text"><?php echo $translate('Close'); ?></span></a>
+    <?php if ($propertySelectorText) :?>
+    <h3><?php echo $escape($translate($propertySelectorText)); ?></h3>
+    <?php else: ?>
+    <h3><?php echo $translate('Click on a property to add it to the edit panel.'); ?></h3>
+    <?php endif; ?>
+    <input type="text" class="selector-filter" placeholder="<?php echo $translate('Filter properties'); ?>" aria-label="<?php echo $translate('Filter properties'); ?>">
+    <ul class="selectable-list">
+
+        <?php foreach ($options as $vocab): ?>
+        <?php
+        $vocabulary = $vocab['vocabulary'];
+        $propertyCount = count($vocab['options']);
+        // Don't display vocabs without properties.
+        if (0 === $propertyCount) { continue; }
+        ?>
+        <li class="selector-parent" data-vocabulary-id="<?php echo $escape($vocabulary->id()); ?>">
+            <span><?php echo $escape($vocab['label']); ?></span> (<span class="selector-child-count"><?php echo $propertyCount; ?></span>)
+            <ul>
+                <?php foreach ($vocab['options'] as $prop): ?>
+                <?php
+                $property = $prop['property'];
+                $comment = $property->comment();
+                ?>
+                <li class="selector-child"
+                    data-child-search="<?php echo $escape($prop['label']); ?>"
+                    data-property-id="<?php echo $escape($property->id()); ?>"
+                    data-property-term="<?php echo $escape($property->term()); ?>">
+                    <div class="description<?php echo $comment ? '' : ' no-comment'; ?>">
+                        <p class="o-icon-info"><span class="screen-reader-text"><?php echo $translate('More info'); ?></span></p>
+                        <p class="field-comment"><?php echo $escape($translate($comment)); ?></p>
+                    </div>
+                    <span class="selectable"><?php echo $escape($prop['label']); ?></span>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+</div>

@@ -1,0 +1,55 @@
+<?php
+$translate = $this->plugin('translate');
+$escape = $this->plugin('escapeHtml');
+?>
+<div class="resource-details" data-resource-values="<?php echo $escape($values); ?>">
+    <?php if ($linkTitle): ?>
+    <h3 class="o-title"><?php echo $resource->link($resource->displayTitle()); ?></h3>
+    <?php else: ?>
+    <h3 class="o-title"><?php echo $escape($resource->displayTitle()); ?></h3>
+    <?php endif; ?>
+    <div class="o-description"><?php echo $escape($resource->displayDescription()); ?></div>
+    <div class="meta-group">
+        <h4><?php echo $translate('ID'); ?></h4>
+        <div class="value"><?php echo $escape($resource->id()); ?></div>
+    </div>
+    <div class="meta-group">
+        <h4><?php echo $escape($translate('Visibility')); ?></h4>
+        <div class="value"><?php echo ($resource->isPublic()) ? $translate('Public') : $translate('Private'); ?></div>
+        <div class="value"><?php echo ($resource->isOpen()) ? $escape($translate('Open to additions')) : $escape($translate('Closed to additions')); ?></div>
+    </div>
+    <div class="meta-group">
+        <h4><?php echo $translate('Items'); ?></h4>
+        <div class="value"><?php echo $this->hyperlink($resource->itemCount(), $this->url('admin/default', ['controller' => 'item', 'action' => 'browse'], ['query' => ['item_set_id' => $resource->id()]])); ?></div>
+    </div>
+    <?php if ($resourceClass = $resource->resourceClass()): ?>
+    <div class="meta-group">
+        <h4><?php echo $translate('Class'); ?></h4>
+        <div class="value"><?php echo $escape($resourceClass->label()); ?></div>
+    </div>
+    <?php endif; ?>
+    <?php if ($resourceTemplate = $resource->resourceTemplate()): ?>
+    <div class="meta-group">
+        <h4><?php echo $translate('Resource template'); ?></h4>
+        <div class="value"><?php echo $resourceTemplate->link($resourceTemplate->label()); ?></div>
+    </div>
+    <?php endif; ?>
+    <?php $sites = $resource->sites(); ?>
+    <?php if ($sites): ?>
+    <div class="meta-group resource-sites">
+        <h4><?php echo $translate('Sites'); ?></h4>
+        <?php foreach ($sites as $site): ?>
+        <div class="value">
+            <?php
+            $siteTitle = $site->title();
+            $externalLinkText = sprintf($translate('View this item set in "%s"'), $siteTitle);
+            echo $site->link($siteTitle);
+            echo $this->hyperlink('', $this->url('site/resource-id', ['site-slug' => $site->slug(), 'controller' => 'item-set', 'id' => $resource->id()]),
+                ['class' => 'o-icon-external', 'target' => '_blank', 'aria-label' => $externalLinkText, 'title' => $externalLinkText]);
+            ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+    <?php $this->trigger('view.details', ['entity' => $resource]); ?>
+</div>

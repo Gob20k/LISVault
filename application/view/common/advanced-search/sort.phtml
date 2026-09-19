@@ -1,0 +1,50 @@
+<?php
+use Laminas\Form\Element;
+
+// Set the sort config context.
+if ($this->status()->isAdminRequest()) {
+    $sortConfigContext = 'admin';
+} elseif ($this->status()->isSiteRequest()) {
+    $sortConfigContext = 'public';
+} else {
+    $sortConfigContext = 'none';
+}
+// Set the sort config resource type.
+switch ($resourceType) {
+    case 'itemSet':
+        $sortConfigResourceType = 'item_sets';
+        break;
+    case 'media':
+        $sortConfigResourceType = 'media';
+        break;
+    case 'item':
+    default:
+        $sortConfigResourceType = 'items';
+}
+// Get the sort config according to context and resource type.
+$sortConfig = $this->browse()->getBrowseService()->getSortConfig($sortConfigContext, $sortConfigResourceType);
+
+$sortBy = new Element\Select('sort_by');
+$sortBy->setAttribute('aria-label', 'Sort by'); // @translate
+$sortBy->setEmptyOption('Select sort by…'); // @translate
+$sortBy->setValueOptions($sortConfig);
+$sortBy->setValue((!isset($query['sort_by_default']) && isset($query['sort_by'])) ? $query['sort_by'] : '');
+
+$sortOrder = new Element\Select('sort_order');
+$sortOrder->setAttribute('aria-label', 'Sort order'); // @translate
+$sortOrder->setEmptyOption('Select sort order…'); // @translate
+$sortOrder->setValueOptions([
+    'asc' => 'Ascending', // @translate
+    'desc' => 'Descending', // @translate
+]);
+$sortOrder->setValue((!isset($query['sort_order_default']) && isset($query['sort_order'])) ? $query['sort_order'] : '');
+?>
+<div class="field" id="sort_field" role="group" aria-labelledby="sort-group-label">
+    <div class="field-meta">
+        <label id="sort-group-label"><?php echo $this->translate('Sort'); ?></label>
+    </div>
+    <div class="inputs">
+        <?php echo $this->formSelect($sortBy); ?>
+        <?php echo $this->formSelect($sortOrder); ?>
+    </div>
+</div>
