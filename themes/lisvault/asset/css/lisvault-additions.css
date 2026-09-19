@@ -1,0 +1,105 @@
+/* ===== Homepage ===== */
+.lisvault-hero {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.lisvault-tagline {
+    color: #555;
+    margin-bottom: 20px;
+}
+
+.lisvault-year-cards {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 20px 0 40px;
+}
+
+.lisvault-year-card {
+    display: block;
+    padding: 30px 40px;
+    background: #f4f4f4;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #222;
+    font-weight: bold;
+    transition: background 0.15s ease;
+}
+
+.lisvault-year-card:hover {
+    background: #e0e0e0;
+}
+
+/* ===== Shared resource grid (homepage + browse) ===== */
+.lisvault-resource-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.lisvault-resource-card {
+    display: block;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #222;
+}
+
+.lisvault-resource-card h3 {
+    font-size: 1em;
+    margin: 10px 0 5px;
+}
+
+.lisvault-resource-meta {
+    font-size: 0.85em;
+    color: #777;
+    margin: 0;
+}
+
+/* ===== Browse page layout ===== */
+.lisvault-browse {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+.lisvault-facets {
+    width: 220px;
+    flex-shrink: 0;
+}
+
+.lisvault-facets h3 {
+    margin-top: 20px;
+    font-size: 0.95em;
+    text-transform: uppercase;
+    color: #777;
+}
+
+.lisvault-facet-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.lisvault-facet-list li {
+    margin: 4px 0;
+}
+
+.lisvault-facet-list li.active a {
+    font-weight: bold;
+    color: #000;
+}
+
+.lisvault-clear-filters {
+    display: inline-block;
+    margin-top: 15px;
+    font-size: 0.85em;
+}
+
+.lisvault-results {
+    flex-grow: 1;
+}

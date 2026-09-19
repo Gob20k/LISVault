@@ -1,24 +1,92 @@
 <?php
-$escape = $this->plugin('escapeHtml');
-$translate = $this->plugin('translate');
-$query = $this->params()->fromQuery();
+/**
+ * LISVault item browse/search page.
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \Omeka\Api\Representation\ItemRepresentation[] $items
+ */
+$site = $this->currentSite();
+$years = ['First Year', 'Second Year', 'Third Year'];
+$currentQuery = $this->params()->fromQuery();
+
+$itemSets = $this->api()->search('item_sets', ['sort_by' => 'title'])->getContent();
+
+// Figure out which facets are currently active, so we can highlight them.
+$activeYear = null;
+if (!empty($currentQuery['property'][0]['text']) && ($currentQuery['property'][0]['property'] ?? null) === 'lisvault:studyYear') {
+    $activeYear = $currentQuery['property'][0]['text'];
+}
+$activeItemSetId = $currentQuery['item_set_id'][0] ?? null;
 ?>
-<header class="browse-heading"><p class="eyebrow">LISVault collection</p><h1>Resources</h1><p class="section-intro">Search and filter the learning resources available to you.</p></header>
-<?= $this->searchFilters() ?>
-<div class="browse-controls"><span class="result-count">Showing <?= count($items) ?> resource<?= count($items) === 1 ? '' : 's' ?></span><?= $this->browse()->renderSortSelector('items') ?></div>
-<?php if (!$items): ?>
-<div class="empty-state"><h2>No resources found</h2><p>Try changing your search criteria or clearing a filter.</p><a class="button" href="<?= $this->url('site/resource', ['controller' => 'item', 'action' => 'browse'], [], true) ?>">Clear filters</a></div>
-<?php else: ?>
-<ul class="resource-list">
-<?php foreach ($items as $item): ?>
-    <li><h2><a href="<?= $escape($item->siteUrl($site->slug())) ?>"><?= $escape($item->displayTitle()) ?></a></h2>
-    <?php if ($description = $item->value('dcterms:description')): ?><p><?= $escape($description) ?></p><?php endif; ?>
-    <div class="resource-meta">
-        <?php foreach (['dcterms:type', 'dcterms:language', 'dcterms:coverage'] as $term): ?>
-            <?php if ($value = $item->value($term)): ?><span><?= $escape($value) ?></span><?php endif; ?>
-        <?php endforeach; ?>
-    </div></li>
-<?php endforeach; ?>
-</ul>
-<?= $this->pagination() ?>
-<?php endif; ?>
+
+<div class="lisvault-browse">
+
+    <aside class="lisvault-facets">
+        <?php echo $this->partial('common/search-form'); ?>
+
+        <h3>Year</h3>
+        <ul class="lisvault-facet-list">
+            <?php foreach ($years as $year):
+                $url = $this->url(
+                    'site/resource',
+                    ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'browse'],
+                    ['query' => ['property' => [
+                        ['property' => 'lisvault:studyYear', 'type' => 'eq', 'text' => $year],
+                    ]]]
+                );
+                $isActive = ($activeYear === $year);
+            ?>
+                <li class="<?php echo $isActive ? 'active' : ''; ?>">
+                    <a href="<?php echo $url; ?>"><?php echo $this->escapeHtml($year); ?></a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+
+        <h3>Module</h3>
+        <ul class="lisvault-facet-list">
+            <?php foreach ($itemSets as $itemSet):
+                $url = $this->url(
+                    'site/resource',
+                    ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'browse'],
+                    ['query' => ['item_set_id' => [$itemSet->id()]]]
+                );
+                $isActive = ($activeItemSetId == $itemSet->id());
+            ?>
+                <li class="<?php echo $isActive ? 'active' : ''; ?>">
+                    <a href="<?php echo $url; ?>"><?php echo $this->escapeHtml($itemSet->displayTitle()); ?></a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+
+        <?php if ($activeYear || $activeItemSetId): ?>
+            <a class="lisvault-clear-filters" href="<?php echo $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'browse']); ?>">
+                Clear filters
+            </a>
+        <?php endif; ?>
+    </aside>
+
+    <main class="lisvault-results">
+        <h1>Resources</h1>
+
+        <?php if (count($items) === 0): ?>
+            <p>No resources match your search.</p>
+        <?php endif; ?>
+
+        <div class="lisvault-resource-grid">
+            <?php foreach ($items as $item): ?>
+                <a class="lisvault-resource-card" href="<?php echo $item->siteUrl($site->slug()); ?>">
+                    <?php $thumbnail = $item->thumbnail(); ?>
+                    <?php if ($thumbnail): ?>
+                        <?php echo $thumbnail->render(); ?>
+                    <?php endif; ?>
+                    <h3><?php echo $this->escapeHtml($item->displayTitle()); ?></h3>
+                    <p class="lisvault-resource-meta">
+                        <?php echo $this->escapeHtml((string) $item->value('lisvault:resourceType')); ?>
+                    </p>
+                </a>
+            <?php endforeach; ?>
+        </div>
+
+        <?php echo $this->pagination(); ?>
+    </main>
+
+</div>

@@ -1,33 +1,81 @@
 <?php
-$escape = $this->plugin('escapeHtml');
-$url = $this->plugin('url');
-$modules = $this->api()->search('item_sets', ['limit' => 17, 'sort_by' => 'title', 'sort_order' => 'asc'])->getContent();
+/**
+ * LISVault homepage.
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \Omeka\Api\Representation\SiteRepresentation $site
+ */
+$site = $this->currentSite();
+
+// The three years, in the order they should appear. If you rename these
+// in your Custom Vocab list, update this array to match exactly.
+$years = ['First Year', 'Second Year', 'Third Year'];
+
+$featuredItems = $this->api()->search('items', [
+    'site_id' => $site->id(),
+    'limit' => 6,
+    'sort_by' => 'created',
+    'sort_order' => 'desc',
+])->getContent();
 ?>
-<section class="hero" aria-labelledby="welcome-title">
-    <div class="eyebrow">Academic digital library</div>
-    <h1 id="welcome-title">Find the LIS learning resources you need.</h1>
-    <p>LISVault brings study guides, lecture material, books and past papers together for Library and Information Studies students.</p>
-    <form class="search-form" method="get" action="<?= $url('site/resource', ['controller' => 'item', 'action' => 'browse'], [], true) ?>">
-        <label class="sr-only" for="resource-search">Search resources</label>
-        <input id="resource-search" name="fulltext_search" type="search" placeholder="Search titles and descriptions">
-        <button type="submit">Search</button>
-    </form>
-</section>
-<section class="section" aria-labelledby="years-title">
-    <h2 id="years-title">Browse by academic year</h2>
-    <p class="section-intro">Start with the level that matches your current studies.</p>
-    <div class="year-grid">
-        <?php foreach (['First Year', 'Second Year', 'Third Year'] as $year): ?>
-        <article class="year-card"><h3><?= $escape($year) ?></h3><p>Explore modules and their learning resources.</p><a href="<?= $url('site/resource', ['controller' => 'item', 'action' => 'browse'], ['query' => ['property' => [['property' => 14, 'type' => 'eq', 'text' => $year]]]], true) ?>">View resources</a></article>
-        <?php endforeach; ?>
-    </div>
-</section>
-<section class="section" aria-labelledby="modules-title">
-    <h2 id="modules-title">Explore modules</h2>
-    <p class="section-intro">Modules are managed in LISVault and update here automatically.</p>
-    <div class="module-grid">
-        <?php foreach ($modules as $module): ?>
-        <article class="module-card"><h3><a href="<?= $escape($module->siteUrl($site->slug(), 'show')) ?>"><?= $escape($module->displayTitle()) ?></a></h3><p><?= $escape($module->displayDescription()) ?></p></article>
-        <?php endforeach; ?>
-    </div>
-</section>
+
+<div class="lisvault-home">
+
+    <section class="lisvault-hero">
+        <h1><?php echo $this->escapeHtml($site->title()); ?></h1>
+        <p class="lisvault-tagline">A Digital Learning Library for Library and Information Science Students</p>
+
+        <?php echo $this->partial('common/search-form'); ?>
+    </section>
+
+    <section class="lisvault-browse-year">
+        <h2>Browse by Year</h2>
+        <div class="lisvault-year-cards">
+            <?php foreach ($years as $year):
+                $url = $this->url(
+                    'site/resource',
+                    ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'browse'],
+                    ['query' => ['property' => [
+                        ['property' => 'lisvault:studyYear', 'type' => 'eq', 'text' => $year],
+                    ]]]
+                );
+            ?>
+                <a class="lisvault-year-card" href="<?php echo $url; ?>">
+                    <span class="lisvault-year-label"><?php echo $this->escapeHtml($year); ?></span>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </section>
+
+        <section class="lisvault-featured">
+        <h2>Recently Added Resources</h2>
+
+        <?php if (count($featuredItems) === 0): ?>
+            <p>No resources have been added yet.</p>
+        <?php else: ?>
+            <table class="lisvault-recent-table">
+                <thead>
+                    <tr>
+                        <th>Resource</th>
+                        <th>Module</th>
+                        <th>Type</th>
+                        <th>Date Added</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($featuredItems as $item):
+                        $itemSets = $item->itemSets();
+                        $module = $itemSets ? reset($itemSets)->displayTitle() : '—';
+                        $resourceType = (string) $item->value('lisvault:resourceType');
+                    ?>
+                        <tr>
+                            <td><a href="<?php echo $item->siteUrl($site->slug()); ?>"><?php echo $this->escapeHtml($item->displayTitle()); ?></a></td>
+                            <td><?php echo $this->escapeHtml($module); ?></td>
+                            <td><?php echo $this->escapeHtml($resourceType ?: '—'); ?></td>
+                            <td><?php echo $item->created()->format('j F Y'); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </section>
+</div>

@@ -1,0 +1,59 @@
+#lisvault-module-field {
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 15px 0;
+    margin: 15px 0;
+}
+
+#lisvault-module-field label {
+    font-weight: bold;
+}
+
+#lisvault-module-select {
+    width: 100%;
+    max-width: 400px;
+    padding: 6px;
+}
+
+/* Hide the "+ Text / Omeka resource / URI" value-type switcher —
+   your Resource Template already fixes the data type per field */
+.add-value {
+    display: none;
+}
+
+/* Hide the language globe icon — you're running one language */
+.value-language {
+    display: none;
+}
+
+/* Clean, consistent field styling matching the LISVault brand */
+.field {
+    padding: 16px 0;
+    border-bottom: 1px solid #D9D9D9;
+}
+
+.field-meta label {
+    color: #0B2545;
+    font-weight: 600;
+    font-size: 1.05em;
+}
+
+.field-description {
+    color: #666;
+    font-size: 0.85em;
+}
+
+.field .inputs textarea,
+.field .inputs input[type="text"],
+.field .inputs select {
+    border: 1px solid #D9D9D9;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.field .inputs textarea:focus,
+.field .inputs input[type="text"]:focus,
+.field .inputs select:focus {
+    border-color: #1D4E89;
+    outline: 2px solid #EAF2FB;
+}
