@@ -88,9 +88,18 @@ class Module extends AbstractModule
             'view.edit.before',
             [$this, 'enqueueAssets']
         );
+
+        // Automatically check every new item into every existing site —
+        // this is exactly what checking the "Sites" tab by hand does,
+        // just fired the moment the item is created.
+        $sharedEventManager->attach(
+            'Omeka\Api\Adapter\ItemAdapter',
+            'api.create.post',
+            [$this, 'attachItemToSites']
+        );
     }
 
-    public function enqueueAssets(\Laminas\EventManager\Event $event)
+    public function enqueueAssets(MvcEvent $event)
     {
         $view = $event->getTarget();
         $view->headLink()->appendStylesheet($view->assetUrl('css/lisvault-admin.css', 'LISVault'));
@@ -108,5 +117,27 @@ class Module extends AbstractModule
         echo $view->partial('lisvault/admin/module-select', [
             'itemSets' => $itemSets,
         ]);
+    }
+
+    public function attachItemToSites($event)
+    {
+        $response = $event->getParam('response');
+        if (!$response) {
+            return;
+        }
+        $item = $response->getContent();
+
+        $api = $this->getServiceLocator()->get('Omeka\ApiManager');
+        $sites = $api->search('sites')->getContent();
+        if (!$sites) {
+            return;
+        }
+
+        $siteRefs = [];
+        foreach ($sites as $site) {
+            $siteRefs[] = ['o:id' => $site->id()];
+        }
+
+        $api->update('items', $item->id(), ['o:site' => $siteRefs], [], ['isPartial' => true]);
     }
 }

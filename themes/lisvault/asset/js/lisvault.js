@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    var toggle = document.querySelector('.menu-toggle');
+    var toggle = document.querySelector('.lv-menu-toggle');
     var nav = document.getElementById('main-nav');
     if (!toggle || !nav) return;
 

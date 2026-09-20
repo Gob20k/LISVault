@@ -1,0 +1,16 @@
+<?php
+/**
+ * @var string $title
+ * @var string $message
+ * @var string|null $actionUrl
+ * @var string|null $actionLabel
+ */
+?>
+<div class="lv-empty">
+    <div class="lv-empty-icon"><?php echo $this->partial('common/icon', ['name' => 'search', 'size' => 28]); ?></div>
+    <div class="lv-empty-title"><?php echo $this->escapeHtml($title); ?></div>
+    <p class="lv-empty-desc"><?php echo $this->escapeHtml($message); ?></p>
+    <?php if (!empty($actionUrl)): ?>
+        <a class="lv-btn lv-btn-outline" href="<?php echo $actionUrl; ?>"><?php echo $this->escapeHtml($actionLabel ?? 'Clear filters'); ?></a>
+    <?php endif; ?>
+</div>

@@ -1,0 +1,51 @@
+<?php
+$site = $this->currentSite();
+$year = (string) $item->value('lisvault:studyYear');
+$resourceType = (string) $item->value('lisvault:resourceType');
+$language = (string) $item->value('dcterms:language');
+$creator = (string) $item->value('dcterms:creator');
+$description = (string) $item->value('dcterms:description');
+$itemSets = $item->itemSets();
+$module = $itemSets ? reset($itemSets) : null;
+$mediaList = $item->media();
+$primaryMedia = $mediaList ? reset($mediaList) : null;
+
+$crumbs = [['label' => 'Home', 'url' => $site->url()]];
+$crumbs[] = $module
+    ? ['label' => $module->displayTitle(), 'url' => $module->siteUrl($site->slug())]
+    : ['label' => 'Browse', 'url' => $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'browse'])];
+$crumbs[] = ['label' => $item->displayTitle(), 'url' => null];
+?>
+
+<?php echo $this->partial('common/breadcrumb', ['crumbs' => $crumbs]); ?>
+
+<div class="lv-detail-card">
+    <?php if ($resourceType): ?><span class="lv-badge"><?php echo $this->escapeHtml(mb_strtoupper($resourceType)); ?></span><?php endif; ?>
+    <h1><?php echo $this->escapeHtml($item->displayTitle()); ?></h1>
+
+    <dl class="lv-detail-meta">
+        <?php if ($module): ?><dt>Module</dt><dd><a href="<?php echo $module->siteUrl($site->slug()); ?>"><?php echo $this->escapeHtml($module->displayTitle()); ?></a></dd><?php endif; ?>
+        <?php if ($year): ?><dt>Year</dt><dd><?php echo $this->escapeHtml($year); ?></dd><?php endif; ?>
+        <?php if ($language): ?><dt>Language</dt><dd><?php echo $this->escapeHtml($language); ?></dd><?php endif; ?>
+        <?php if ($creator): ?><dt>Creator</dt><dd><?php echo $this->escapeHtml($creator); ?></dd><?php endif; ?>
+        <dt>Date Added</dt><dd><?php echo $item->created()->format('j F Y'); ?></dd>
+    </dl>
+
+    <?php if ($description): ?>
+        <div class="lv-detail-desc">
+            <h2>Description</h2>
+            <p><?php echo nl2br($this->escapeHtml($description)); ?></p>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($primaryMedia): ?>
+        <div class="lv-detail-actions">
+            <a class="lv-btn lv-btn-outline" href="<?php echo $primaryMedia->originalUrl(); ?>" target="_blank" rel="noopener">
+                <?php echo $this->partial('common/icon', ['name' => 'eye', 'size' => 16]); ?> View PDF
+            </a>
+            <a class="lv-btn lv-btn-primary" href="<?php echo $primaryMedia->originalUrl(); ?>" download>
+                <?php echo $this->partial('common/icon', ['name' => 'download', 'size' => 16]); ?> Download PDF
+            </a>
+        </div>
+    <?php endif; ?>
+</div>

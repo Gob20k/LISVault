@@ -1,81 +1,71 @@
 <?php
-/**
- * LISVault homepage.
- * @var \Laminas\View\Renderer\PhpRenderer $this
- * @var \Omeka\Api\Representation\SiteRepresentation $site
- */
 $site = $this->currentSite();
-
-// The three years, in the order they should appear. If you rename these
-// in your Custom Vocab list, update this array to match exactly.
 $years = ['First Year', 'Second Year', 'Third Year'];
+$types = [
+    'Study Guide' => 'study-guide',
+    'Lecture Material' => 'lecture',
+    'Book' => 'book',
+    'Past Paper' => 'past-paper',
+];
 
-$featuredItems = $this->api()->search('items', [
-    'site_id' => $site->id(),
-    'limit' => 6,
-    'sort_by' => 'created',
-    'sort_order' => 'desc',
+$recent = $this->api()->search('items', [
+    'site_id' => $site->id(), 'limit' => 6, 'sort_by' => 'created', 'sort_order' => 'desc',
 ])->getContent();
+
+$browseUrl = function ($property) use ($site) {
+    return $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'browse'],
+        ['query' => ['property' => [$property]]]);
+};
 ?>
 
-<div class="lisvault-home">
+<section class="lv-hero">
+    <h1><?php echo $this->escapeHtml($site->title()); ?></h1>
+    <p class="lv-hero-sub">Study guides, lecture material, books and past papers for LIS students.</p>
+    <form class="lv-searchbar" method="get" action="<?php echo $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'search']); ?>">
+        <span class="lv-searchbar-icon"><?php echo $this->partial('common/icon', ['name' => 'search', 'size' => 18]); ?></span>
+        <input type="text" name="fulltext_search" placeholder="Search resources...">
+        <button type="submit" class="lv-icon-btn" aria-label="Search">
+            <?php echo $this->partial('common/icon', ['name' => 'search', 'size' => 18]); ?>
+        </button>
+    </form>
+</section>
 
-    <section class="lisvault-hero">
-        <h1><?php echo $this->escapeHtml($site->title()); ?></h1>
-        <p class="lisvault-tagline">A Digital Learning Library for Library and Information Science Students</p>
+<section class="lv-section">
+    <h2>Browse by Year</h2>
+    <div class="lv-year-cards">
+        <?php foreach ($years as $year): ?>
+            <a class="lv-year-card" href="<?php echo $browseUrl(['property' => 'lisvault:studyYear', 'type' => 'eq', 'text' => $year]); ?>">
+                <span class="lv-year-card-title"><?php echo $this->escapeHtml($year); ?></span>
+                <span class="lv-year-card-link">View resources →</span>
+            </a>
+        <?php endforeach; ?>
+    </div>
+</section>
 
-        <?php echo $this->partial('common/search-form'); ?>
-    </section>
+<section class="lv-section">
+    <h2>Browse by Type</h2>
+    <div class="lv-type-cards">
+        <?php foreach ($types as $type => $iconName): ?>
+            <a class="lv-type-card" href="<?php echo $browseUrl(['property' => 'lisvault:resourceType', 'type' => 'eq', 'text' => $type]); ?>">
+                <span class="lv-type-card-icon"><?php echo $this->partial('common/icon', ['name' => $iconName, 'size' => 26]); ?></span>
+                <span class="lv-type-card-title"><?php echo $this->escapeHtml($type); ?></span>
+            </a>
+        <?php endforeach; ?>
+    </div>
+</section>
 
-    <section class="lisvault-browse-year">
-        <h2>Browse by Year</h2>
-        <div class="lisvault-year-cards">
-            <?php foreach ($years as $year):
-                $url = $this->url(
-                    'site/resource',
-                    ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'browse'],
-                    ['query' => ['property' => [
-                        ['property' => 'lisvault:studyYear', 'type' => 'eq', 'text' => $year],
-                    ]]]
-                );
-            ?>
-                <a class="lisvault-year-card" href="<?php echo $url; ?>">
-                    <span class="lisvault-year-label"><?php echo $this->escapeHtml($year); ?></span>
-                </a>
+<section class="lv-section">
+    <h2>Recently Added</h2>
+    <?php if (count($recent) === 0): ?>
+        <?php echo $this->partial('common/empty-state', [
+            'title' => 'No resources yet',
+            'message' => 'Once resources are added, they will appear here.',
+        ]); ?>
+    <?php else: ?>
+        <div class="lv-resource-grid">
+            <?php foreach ($recent as $item): ?>
+                <?php echo $this->partial('common/resource-card', ['item' => $item, 'site' => $site]); ?>
             <?php endforeach; ?>
         </div>
-    </section>
-
-        <section class="lisvault-featured">
-        <h2>Recently Added Resources</h2>
-
-        <?php if (count($featuredItems) === 0): ?>
-            <p>No resources have been added yet.</p>
-        <?php else: ?>
-            <table class="lisvault-recent-table">
-                <thead>
-                    <tr>
-                        <th>Resource</th>
-                        <th>Module</th>
-                        <th>Type</th>
-                        <th>Date Added</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($featuredItems as $item):
-                        $itemSets = $item->itemSets();
-                        $module = $itemSets ? reset($itemSets)->displayTitle() : '—';
-                        $resourceType = (string) $item->value('lisvault:resourceType');
-                    ?>
-                        <tr>
-                            <td><a href="<?php echo $item->siteUrl($site->slug()); ?>"><?php echo $this->escapeHtml($item->displayTitle()); ?></a></td>
-                            <td><?php echo $this->escapeHtml($module); ?></td>
-                            <td><?php echo $this->escapeHtml($resourceType ?: '—'); ?></td>
-                            <td><?php echo $item->created()->format('j F Y'); ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
-    </section>
-</div>
+    <?php endif; ?>
+</section>
