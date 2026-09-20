@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
-    var button = document.querySelector('.menu-toggle');
-    var navigation = document.querySelector('#main-nav');
-    if (button && navigation) button.addEventListener('click', function () { var open = navigation.classList.toggle('is-open'); button.setAttribute('aria-expanded', open); });
+    var toggle = document.querySelector('.menu-toggle');
+    var nav = document.getElementById('main-nav');
+    if (!toggle || !nav) return;
+
+    toggle.addEventListener('click', function () {
+        var isOpen = nav.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
 });
