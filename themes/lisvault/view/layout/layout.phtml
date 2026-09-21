@@ -6,6 +6,7 @@ $this->headMeta()->appendName('viewport', 'width=device-width, initial-scale=1, 
 $this->headTitle($site->title())->setSeparator(' · ');
 $this->headLink()->appendStylesheet($this->assetUrl('css/lisvault.css'));
 $this->headScript()->appendFile($this->assetUrl('js/lisvault.js'));
+$this->headScript()->appendFile('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
 
 $browseUrl = $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'browse']);
 $modulesUrl = $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item-set', 'action' => 'browse']);

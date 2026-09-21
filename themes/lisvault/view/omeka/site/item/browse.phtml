@@ -43,7 +43,6 @@ $browseUrl = function ($query = []) use ($site) {
                 <?php echo $this->partial('common/resource-card', ['item' => $item, 'site' => $site]); ?>
             <?php endforeach; ?>
         </div>
-        <?php /* No pagination() here — this branch runs its own manual query, so Omeka's paginator has no real state to show. */ ?>
     <?php endif; ?>
 
 <?php else:
@@ -125,9 +124,20 @@ $browseUrl = function ($query = []) use ($site) {
     <?php elseif ($isYearOnly): ?>
 
         <?php
+        // Build the module list AND its resource totals up front, purely from
+        // item-set membership — same reliable signal the Modules page uses.
+        // We deliberately do not depend on $items (Omeka's own property-filtered
+        // list) here anymore, since that relies on each item's own Year tag
+        // matching exactly, which can drift out of sync with the module's Year.
         $itemSetsThisYear = [];
+        $yearTotal = 0;
         foreach ($this->api()->search('item_sets', ['sort_by' => 'title'])->getContent() as $set) {
-            if ((string) $set->value('lisvault:studyYear') === $yearFilter) { $itemSetsThisYear[] = $set; }
+            if ((string) $set->value('lisvault:studyYear') !== $yearFilter) {
+                continue;
+            }
+            $moduleTotal = $this->api()->search('items', ['item_set_id' => $set->id()])->getTotalResults();
+            $itemSetsThisYear[] = ['set' => $set, 'total' => $moduleTotal];
+            $yearTotal += $moduleTotal;
         }
         ?>
         <?php echo $this->partial('common/breadcrumb', ['crumbs' => [
@@ -140,16 +150,17 @@ $browseUrl = function ($query = []) use ($site) {
             <p class="lv-page-sub">Every resource for <?php echo $this->escapeHtml($yearFilter); ?>, grouped by module.</p>
         </header>
 
-        <?php if (count($items) === 0): ?>
+        <?php if ($yearTotal === 0): ?>
             <?php echo $this->partial('common/empty-state', [
                 'title' => 'No resources yet',
                 'message' => 'No resources have been added for ' . $yearFilter . ' yet.',
             ]); ?>
         <?php else: ?>
-            <?php foreach ($itemSetsThisYear as $set):
-                $moduleItems = $this->api()->search('items', ['item_set_id' => $set->id(), 'limit' => 3, 'sort_by' => 'created', 'sort_order' => 'desc'])->getContent();
-                $moduleTotal = $this->api()->search('items', ['item_set_id' => $set->id()])->getTotalResults();
+            <?php foreach ($itemSetsThisYear as $entry):
+                $set = $entry['set'];
+                $moduleTotal = $entry['total'];
                 if ($moduleTotal === 0) { continue; }
+                $moduleItems = $this->api()->search('items', ['item_set_id' => $set->id(), 'limit' => 3, 'sort_by' => 'created', 'sort_order' => 'desc'])->getContent();
             ?>
                 <section class="lv-module-group">
                     <div class="lv-module-group-head">

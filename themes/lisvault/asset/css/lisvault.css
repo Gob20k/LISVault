@@ -221,3 +221,27 @@ h1, h2, h3 { color: var(--lv-heading); margin: 0 0 8px; }
 }
 .lv-content table { border-collapse: collapse; width: 100%; }
 .lv-content table th, .lv-content table td { padding: 8px 12px; border-bottom: 1px solid var(--lv-border); text-align: left; }
+.lv-card-media {
+    position: relative;
+    height: 140px;
+    background: var(--lv-surface-alt);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.lv-card-thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+.lv-has-thumb .lv-card-thumb { display: block; }
+.lv-has-thumb .lv-card-icon { display: none; }

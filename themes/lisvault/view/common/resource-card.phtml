@@ -6,9 +6,18 @@ $description = (string) $item->value('dcterms:description');
 
 $iconMap = ['Study Guide' => 'study-guide', 'Lecture Material' => 'lecture', 'Book' => 'book', 'Past Paper' => 'past-paper'];
 $iconName = $iconMap[$resourceType] ?? 'past-paper';
+
+$mediaList = $item->media();
+$primaryMedia = $mediaList ? reset($mediaList) : null;
+$isPdf = $primaryMedia && $primaryMedia->mediaType() === 'application/pdf';
 ?>
 <a class="lv-card" href="<?php echo $item->siteUrl($site->slug()); ?>">
-    <div class="lv-card-icon"><?php echo $this->partial('common/icon', ['name' => $iconName, 'size' => 22]); ?></div>
+    <div class="lv-card-media">
+        <?php if ($isPdf): ?>
+            <canvas class="lv-card-thumb" data-pdf-src="<?php echo $this->escapeHtmlAttr($primaryMedia->originalUrl()); ?>"></canvas>
+        <?php endif; ?>
+        <div class="lv-card-icon"><?php echo $this->partial('common/icon', ['name' => $iconName, 'size' => 26]); ?></div>
+    </div>
     <div class="lv-card-tags">
         <?php if ($resourceType): ?><span class="lv-tag"><?php echo $this->escapeHtml($resourceType); ?></span><?php endif; ?>
         <?php if ($year): ?><span class="lv-tag"><?php echo $this->escapeHtml($year); ?></span><?php endif; ?>

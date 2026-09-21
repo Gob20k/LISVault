@@ -6,7 +6,6 @@ use Omeka\Entity\Vocabulary;
 use Omeka\Entity\Property;
 use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\ServiceManager\ServiceLocatorInterface;
-use Laminas\Mvc\MvcEvent;
 
 class Module extends AbstractModule
 {
@@ -69,54 +68,10 @@ class Module extends AbstractModule
     public function attachListeners(SharedEventManagerInterface $sharedEventManager)
     {
         $sharedEventManager->attach(
-            'Omeka\Controller\Admin\Item',
-            'view.add.form.after',
-            [$this, 'addModuleField']
-        );
-        $sharedEventManager->attach(
-            'Omeka\Controller\Admin\Item',
-            'view.edit.form.after',
-            [$this, 'addModuleField']
-        );
-        $sharedEventManager->attach(
-            'Omeka\Controller\Admin\Item',
-            'view.add.before',
-            [$this, 'enqueueAssets']
-        );
-        $sharedEventManager->attach(
-            'Omeka\Controller\Admin\Item',
-            'view.edit.before',
-            [$this, 'enqueueAssets']
-        );
-
-        // Automatically check every new item into every existing site —
-        // this is exactly what checking the "Sites" tab by hand does,
-        // just fired the moment the item is created.
-        $sharedEventManager->attach(
             'Omeka\Api\Adapter\ItemAdapter',
             'api.create.post',
             [$this, 'attachItemToSites']
         );
-    }
-
-    public function enqueueAssets(MvcEvent $event)
-    {
-        $view = $event->getTarget();
-        $view->headLink()->appendStylesheet($view->assetUrl('css/lisvault-admin.css', 'LISVault'));
-        $view->headScript()->appendFile($view->assetUrl('js/lisvault-admin.js', 'LISVault'));
-    }
-
-    public function addModuleField($event)
-    {
-        $view = $event->getTarget();
-        $itemSets = $this->getServiceLocator()
-            ->get('Omeka\ApiManager')
-            ->search('item_sets', ['sort_by' => 'title'])
-            ->getContent();
-
-        echo $view->partial('lisvault/admin/module-select', [
-            'itemSets' => $itemSets,
-        ]);
     }
 
     public function attachItemToSites($event)
@@ -125,7 +80,15 @@ class Module extends AbstractModule
         if (!$response) {
             return;
         }
+
         $item = $response->getContent();
+        if (!$item) {
+            return;
+        }
+
+        // At this stage in the lifecycle $item is the raw Doctrine entity,
+        // not the API Representation — so getId(), not id().
+        $itemId = method_exists($item, 'getId') ? $item->getId() : $item->id();
 
         $api = $this->getServiceLocator()->get('Omeka\ApiManager');
         $sites = $api->search('sites')->getContent();
@@ -138,6 +101,6 @@ class Module extends AbstractModule
             $siteRefs[] = ['o:id' => $site->id()];
         }
 
-        $api->update('items', $item->id(), ['o:site' => $siteRefs], [], ['isPartial' => true]);
+        $api->update('items', $itemId, ['o:site' => $siteRefs], [], ['isPartial' => true]);
     }
 }
