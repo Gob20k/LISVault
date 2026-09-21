@@ -1,0 +1,43 @@
+<?php
+$site = $this->currentSite();
+$years = ['First Year', 'Second Year', 'Third Year'];
+$currentQuery = $this->params()->fromQuery();
+$activeYear = null;
+foreach ($currentQuery['property'] ?? [] as $prop) {
+    if (($prop['property'] ?? null) === 'lisvault:studyYear') { $activeYear = $prop['text'] ?? null; }
+}
+$yearUrl = function ($year = null) use ($site) {
+    $query = $year ? ['property' => [['property' => 'lisvault:studyYear', 'type' => 'eq', 'text' => $year]]] : [];
+    return $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item-set', 'action' => 'browse'], ['query' => $query]);
+};
+?>
+
+<header class="lv-page-header">
+    <h1><?php echo $activeYear ? $this->escapeHtml($activeYear) . ' Modules' : 'All Modules'; ?></h1>
+    <p class="lv-page-sub"><?php echo count($itemSets); ?> module<?php echo count($itemSets) === 1 ? '' : 's'; ?></p>
+</header>
+
+<div class="lv-chip-row">
+    <a class="lv-chip <?php echo !$activeYear ? 'lv-chip-active' : ''; ?>" href="<?php echo $yearUrl(); ?>">All</a>
+    <?php foreach ($years as $year): ?>
+        <a class="lv-chip <?php echo $activeYear === $year ? 'lv-chip-active' : ''; ?>" href="<?php echo $yearUrl($year); ?>"><?php echo $this->escapeHtml($year); ?></a>
+    <?php endforeach; ?>
+</div>
+
+<?php if (count($itemSets) === 0): ?>
+    <?php echo $this->partial('common/empty-state', [
+        'title' => 'No modules found',
+        'message' => 'No modules match this filter yet.',
+        'actionUrl' => $yearUrl(),
+    ]); ?>
+<?php else: ?>
+    <div class="lv-module-grid">
+        <?php foreach ($itemSets as $itemSet): $count = $this->api()->search('items', ['item_set_id' => $itemSet->id()])->getTotalResults(); ?>
+            <a class="lv-module-card" href="<?php echo $itemSet->siteUrl($site->slug()); ?>">
+                <h3><?php echo $this->escapeHtml($itemSet->displayTitle()); ?></h3>
+                <span class="lv-module-card-count"><?php echo $count; ?> resource<?php echo $count === 1 ? '' : 's'; ?></span>
+            </a>
+        <?php endforeach; ?>
+    </div>
+    <?php echo $this->pagination(); ?>
+<?php endif; ?>

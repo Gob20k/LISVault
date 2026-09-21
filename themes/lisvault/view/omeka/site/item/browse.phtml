@@ -1,24 +1,222 @@
 <?php
-$escape = $this->plugin('escapeHtml');
-$translate = $this->plugin('translate');
-$query = $this->params()->fromQuery();
+$site = $this->currentSite();
+$currentQuery = $this->params()->fromQuery();
+$searchText = $currentQuery['fulltext_search'] ?? '';
+
+$browseUrl = function ($query = []) use ($site) {
+    return $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'browse'], ['query' => $query]);
+};
 ?>
-<header class="browse-heading"><p class="eyebrow">LISVault collection</p><h1>Resources</h1><p class="section-intro">Search and filter the learning resources available to you.</p></header>
-<?= $this->searchFilters() ?>
-<div class="browse-controls"><span class="result-count">Showing <?= count($items) ?> resource<?= count($items) === 1 ? '' : 's' ?></span><?= $this->browse()->renderSortSelector('items') ?></div>
-<?php if (!$items): ?>
-<div class="empty-state"><h2>No resources found</h2><p>Try changing your search criteria or clearing a filter.</p><a class="button" href="<?= $this->url('site/resource', ['controller' => 'item', 'action' => 'browse'], [], true) ?>">Clear filters</a></div>
-<?php else: ?>
-<ul class="resource-list">
-<?php foreach ($items as $item): ?>
-    <li><h2><a href="<?= $escape($item->siteUrl($site->slug())) ?>"><?= $escape($item->displayTitle()) ?></a></h2>
-    <?php if ($description = $item->value('dcterms:description')): ?><p><?= $escape($description) ?></p><?php endif; ?>
-    <div class="resource-meta">
-        <?php foreach (['dcterms:type', 'dcterms:language', 'dcterms:coverage'] as $term): ?>
-            <?php if ($value = $item->value($term)): ?><span><?= $escape($value) ?></span><?php endif; ?>
-        <?php endforeach; ?>
-    </div></li>
-<?php endforeach; ?>
-</ul>
-<?= $this->pagination() ?>
+
+<?php if (!empty($itemSet)): ?>
+
+    <?php $year = (string) $itemSet->value('lisvault:studyYear'); ?>
+    <?php echo $this->partial('common/breadcrumb', ['crumbs' => [
+        ['label' => 'Home', 'url' => $site->url()],
+        ['label' => 'Modules', 'url' => $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item-set', 'action' => 'browse'])],
+        ['label' => $itemSet->displayTitle(), 'url' => null],
+    ]]); ?>
+    <header class="lv-page-header">
+        <h1><?php echo $this->escapeHtml($itemSet->displayTitle()); ?></h1>
+        <?php if ($year): ?><p class="lv-page-sub"><?php echo $this->escapeHtml($year); ?></p><?php endif; ?>
+    </header>
+
+    <form class="lv-searchbar lv-searchbar-inline" method="get">
+        <span class="lv-searchbar-icon"><?php echo $this->partial('common/icon', ['name' => 'search', 'size' => 18]); ?></span>
+        <input type="text" name="fulltext_search" placeholder="Search within this module..." value="<?php echo $this->escapeHtml($searchText); ?>">
+        <button type="submit" class="lv-icon-btn" aria-label="Search">
+            <?php echo $this->partial('common/icon', ['name' => 'search', 'size' => 18]); ?>
+        </button>
+    </form>
+
+    <p class="lv-result-count">Showing <?php echo count($items); ?> resource<?php echo count($items) === 1 ? '' : 's'; ?></p>
+
+    <?php if (count($items) === 0): ?>
+        <?php echo $this->partial('common/empty-state', [
+            'title' => 'No resources found',
+            'message' => $searchText ? 'Nothing in this module matches "' . $searchText . '".' : 'This module has no resources yet.',
+            'actionUrl' => $searchText ? $itemSet->siteUrl($site->slug()) : null,
+        ]); ?>
+    <?php else: ?>
+        <div class="lv-resource-grid">
+            <?php foreach ($items as $item): ?>
+                <?php echo $this->partial('common/resource-card', ['item' => $item, 'site' => $site]); ?>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+<?php else:
+    $years = ['First Year', 'Second Year', 'Third Year'];
+    $types = [
+        'Study Guide' => 'study-guide',
+        'Lecture Material' => 'lecture',
+        'Book' => 'book',
+        'Past Paper' => 'past-paper',
+    ];
+
+    $yearFilter = null;
+    $typeFilter = null;
+    $languageFilter = null;
+    foreach ($currentQuery['property'] ?? [] as $prop) {
+        if (($prop['property'] ?? null) === 'lisvault:studyYear') { $yearFilter = $prop['text'] ?? null; }
+        if (($prop['property'] ?? null) === 'lisvault:resourceType') { $typeFilter = $prop['text'] ?? null; }
+        if (($prop['property'] ?? null) === 'dcterms:language') { $languageFilter = $prop['text'] ?? null; }
+    }
+    $moduleFilter = $currentQuery['item_set_id'][0] ?? null;
+    $hasAnyFilter = $yearFilter || $typeFilter || $moduleFilter || $languageFilter || $searchText !== '';
+    $isYearOnly = $yearFilter && !$typeFilter && !$moduleFilter && !$languageFilter && $searchText === '';
+?>
+
+    <?php if (!$hasAnyFilter): ?>
+
+        <?php
+        $itemSetsByYear = [];
+        foreach ($this->api()->search('item_sets', ['sort_by' => 'title'])->getContent() as $set) {
+            $setYear = (string) $set->value('lisvault:studyYear') ?: 'Unassigned';
+            $itemSetsByYear[$setYear][] = $set;
+        }
+        ?>
+        <header class="lv-page-header">
+            <h1>Browse resources</h1>
+            <p class="lv-page-sub">Every path below leads to a list of resources — by year, by module, or by type.</p>
+        </header>
+
+        <section class="lv-section">
+            <h2>By Year</h2>
+            <div class="lv-year-cards">
+                <?php foreach ($years as $year): $count = count($itemSetsByYear[$year] ?? []); ?>
+                    <a class="lv-year-card" href="<?php echo $browseUrl(['property' => [['property' => 'lisvault:studyYear', 'type' => 'eq', 'text' => $year]]]); ?>">
+                        <span class="lv-year-card-title"><?php echo $this->escapeHtml($year); ?></span>
+                        <span class="lv-year-card-count"><?php echo $count; ?> module<?php echo $count === 1 ? '' : 's'; ?></span>
+                        <span class="lv-year-card-link">View resources →</span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+
+        <section class="lv-section">
+            <h2>By Module</h2>
+            <div class="lv-module-columns">
+                <?php foreach ($years as $year): ?>
+                    <div class="lv-module-column">
+                        <div class="lv-module-column-title"><?php echo $this->escapeHtml($year); ?></div>
+                        <?php foreach (array_slice($itemSetsByYear[$year] ?? [], 0, 4) as $set): ?>
+                            <a class="lv-module-column-item" href="<?php echo $set->siteUrl($site->slug()); ?>"><?php echo $this->escapeHtml($set->displayTitle()); ?></a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <a class="lv-link-more" href="<?php echo $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item-set', 'action' => 'browse']); ?>">View all modules →</a>
+        </section>
+
+        <section class="lv-section">
+            <h2>By Type</h2>
+            <div class="lv-type-cards">
+                <?php foreach ($types as $type => $iconName): ?>
+                    <a class="lv-type-card" href="<?php echo $browseUrl(['property' => [['property' => 'lisvault:resourceType', 'type' => 'eq', 'text' => $type]]]); ?>">
+                        <span class="lv-type-card-icon"><?php echo $this->partial('common/icon', ['name' => $iconName, 'size' => 26]); ?></span>
+                        <span class="lv-type-card-title"><?php echo $this->escapeHtml($type); ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+
+    <?php elseif ($isYearOnly): ?>
+
+        <?php
+        // Build the module list AND its resource totals up front, purely from
+        // item-set membership — same reliable signal the Modules page uses.
+        // We deliberately do not depend on $items (Omeka's own property-filtered
+        // list) here anymore, since that relies on each item's own Year tag
+        // matching exactly, which can drift out of sync with the module's Year.
+        $itemSetsThisYear = [];
+        $yearTotal = 0;
+        foreach ($this->api()->search('item_sets', ['sort_by' => 'title'])->getContent() as $set) {
+            if ((string) $set->value('lisvault:studyYear') !== $yearFilter) {
+                continue;
+            }
+            $moduleTotal = $this->api()->search('items', ['item_set_id' => $set->id()])->getTotalResults();
+            $itemSetsThisYear[] = ['set' => $set, 'total' => $moduleTotal];
+            $yearTotal += $moduleTotal;
+        }
+        ?>
+        <?php echo $this->partial('common/breadcrumb', ['crumbs' => [
+            ['label' => 'Home', 'url' => $site->url()],
+            ['label' => 'Browse', 'url' => $browseUrl()],
+            ['label' => $yearFilter, 'url' => null],
+        ]]); ?>
+        <header class="lv-page-header">
+            <h1><?php echo $this->escapeHtml($yearFilter); ?></h1>
+            <p class="lv-page-sub">Every resource for <?php echo $this->escapeHtml($yearFilter); ?>, grouped by module.</p>
+        </header>
+
+        <?php if ($yearTotal === 0): ?>
+            <?php echo $this->partial('common/empty-state', [
+                'title' => 'No resources yet',
+                'message' => 'No resources have been added for ' . $yearFilter . ' yet.',
+            ]); ?>
+        <?php else: ?>
+            <?php foreach ($itemSetsThisYear as $entry):
+                $set = $entry['set'];
+                $moduleTotal = $entry['total'];
+                if ($moduleTotal === 0) { continue; }
+                $moduleItems = $this->api()->search('items', ['item_set_id' => $set->id(), 'limit' => 3, 'sort_by' => 'created', 'sort_order' => 'desc'])->getContent();
+            ?>
+                <section class="lv-module-group">
+                    <div class="lv-module-group-head">
+                        <h2><?php echo $this->escapeHtml($set->displayTitle()); ?></h2>
+                        <span class="lv-module-group-count"><?php echo $moduleTotal; ?> resource<?php echo $moduleTotal === 1 ? '' : 's'; ?></span>
+                    </div>
+                    <div class="lv-resource-grid">
+                        <?php foreach ($moduleItems as $item): ?>
+                            <?php echo $this->partial('common/resource-card', ['item' => $item, 'site' => $site]); ?>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php if ($moduleTotal > 3): ?>
+                        <a class="lv-link-more" href="<?php echo $set->siteUrl($site->slug()); ?>">View all <?php echo $moduleTotal; ?> resources in this module →</a>
+                    <?php endif; ?>
+                </section>
+            <?php endforeach; ?>
+        <?php endif; ?>
+
+    <?php else: ?>
+
+        <?php echo $this->partial('common/breadcrumb', ['crumbs' => [
+            ['label' => 'Home', 'url' => $site->url()],
+            ['label' => 'Browse', 'url' => $browseUrl()],
+            ['label' => $typeFilter ?: 'Results', 'url' => null],
+        ]]); ?>
+        <header class="lv-page-header">
+            <h1><?php echo $this->escapeHtml($typeFilter ?: 'Resources'); ?></h1>
+        </header>
+
+        <?php if ($yearFilter || $typeFilter || $languageFilter || $searchText): ?>
+            <div class="lv-chip-row">
+                <?php if ($searchText): ?><span class="lv-chip">"<?php echo $this->escapeHtml($searchText); ?>"</span><?php endif; ?>
+                <?php if ($yearFilter): ?><span class="lv-chip"><?php echo $this->escapeHtml($yearFilter); ?></span><?php endif; ?>
+                <?php if ($typeFilter): ?><span class="lv-chip"><?php echo $this->escapeHtml($typeFilter); ?></span><?php endif; ?>
+                <?php if ($languageFilter): ?><span class="lv-chip"><?php echo $this->escapeHtml($languageFilter); ?></span><?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+        <p class="lv-result-count">Showing <?php echo count($items); ?> resource<?php echo count($items) === 1 ? '' : 's'; ?></p>
+
+        <?php if (count($items) === 0): ?>
+            <?php echo $this->partial('common/empty-state', [
+                'title' => 'No resources found',
+                'message' => 'Try a broader search or different filters.',
+                'actionUrl' => $browseUrl(),
+                'actionLabel' => 'Clear filters',
+            ]); ?>
+        <?php else: ?>
+            <div class="lv-resource-grid">
+                <?php foreach ($items as $item): ?>
+                    <?php echo $this->partial('common/resource-card', ['item' => $item, 'site' => $site]); ?>
+                <?php endforeach; ?>
+            </div>
+            <?php echo $this->pagination(); ?>
+        <?php endif; ?>
+
+    <?php endif; ?>
+
 <?php endif; ?>

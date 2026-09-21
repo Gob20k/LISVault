@@ -1,0 +1,53 @@
+<?php
+/**
+ * LISVault "Module" page.
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \Omeka\Api\Representation\ItemSetRepresentation $itemSet
+ */
+$site = $this->currentSite();
+$year = (string) $itemSet->value('lisvault:studyYear');
+$currentQuery = $this->params()->fromQuery();
+$searchText = $currentQuery['fulltext_search'] ?? '';
+
+$apiQuery = ['item_set_id' => $itemSet->id(), 'sort_by' => 'created', 'sort_order' => 'desc'];
+if ($searchText !== '') {
+    $apiQuery['fulltext_search'] = $searchText;
+}
+$items = $this->api()->search('items', $apiQuery)->getContent();
+?>
+
+<div class="lisvault-module-page">
+
+    <header class="lisvault-module-header">
+        <h1><?php echo $this->escapeHtml($itemSet->displayTitle()); ?></h1>
+        <?php if ($year): ?>
+            <p class="lisvault-module-year"><?php echo $this->escapeHtml($year); ?></p>
+        <?php endif; ?>
+    </header>
+
+    <form class="lisvault-module-search" method="get">
+        <input type="text" name="fulltext_search" placeholder="Search within module..." value="<?php echo $this->escapeHtml($searchText); ?>">
+        <button type="submit">Search</button>
+    </form>
+
+    <div class="lisvault-resource-list">
+        <?php if (count($items) === 0): ?>
+            <p>No resources found in this module<?php echo $searchText ? ' matching "' . $this->escapeHtml($searchText) . '"' : ''; ?>.</p>
+        <?php endif; ?>
+
+        <?php foreach ($items as $item):
+            $resourceType = (string) $item->value('lisvault:resourceType');
+            $language = (string) $item->value('dcterms:language');
+        ?>
+            <div class="lisvault-resource-row">
+                <h3><a href="<?php echo $item->siteUrl($site->slug()); ?>"><?php echo $this->escapeHtml($item->displayTitle()); ?></a></h3>
+                <p class="lisvault-resource-meta">
+                    <?php echo $this->escapeHtml($resourceType ?: '—'); ?>
+                    <?php if ($language): ?> • <?php echo $this->escapeHtml($language); ?><?php endif; ?>
+                    <br>Added: <?php echo $item->created()->format('j F Y'); ?>
+                </p>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
+</div>

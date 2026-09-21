@@ -1,33 +1,71 @@
 <?php
-$escape = $this->plugin('escapeHtml');
-$url = $this->plugin('url');
-$modules = $this->api()->search('item_sets', ['limit' => 17, 'sort_by' => 'title', 'sort_order' => 'asc'])->getContent();
+$site = $this->currentSite();
+$years = ['First Year', 'Second Year', 'Third Year'];
+$types = [
+    'Study Guide' => 'study-guide',
+    'Lecture Material' => 'lecture',
+    'Book' => 'book',
+    'Past Paper' => 'past-paper',
+];
+
+$recent = $this->api()->search('items', [
+    'site_id' => $site->id(), 'limit' => 6, 'sort_by' => 'created', 'sort_order' => 'desc',
+])->getContent();
+
+$browseUrl = function ($property) use ($site) {
+    return $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'browse'],
+        ['query' => ['property' => [$property]]]);
+};
 ?>
-<section class="hero" aria-labelledby="welcome-title">
-    <div class="eyebrow">Academic digital library</div>
-    <h1 id="welcome-title">Find the LIS learning resources you need.</h1>
-    <p>LISVault brings study guides, lecture material, books and past papers together for Library and Information Studies students.</p>
-    <form class="search-form" method="get" action="<?= $url('site/resource', ['controller' => 'item', 'action' => 'browse'], [], true) ?>">
-        <label class="sr-only" for="resource-search">Search resources</label>
-        <input id="resource-search" name="fulltext_search" type="search" placeholder="Search titles and descriptions">
-        <button type="submit">Search</button>
+
+<section class="lv-hero">
+    <h1><?php echo $this->escapeHtml($site->title()); ?></h1>
+    <p class="lv-hero-sub">Study guides, lecture material, books and past papers for LIS students.</p>
+    <form class="lv-searchbar" method="get" action="<?php echo $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'search']); ?>">
+        <span class="lv-searchbar-icon"><?php echo $this->partial('common/icon', ['name' => 'search', 'size' => 18]); ?></span>
+        <input type="text" name="fulltext_search" placeholder="Search resources...">
+        <button type="submit" class="lv-icon-btn" aria-label="Search">
+            <?php echo $this->partial('common/icon', ['name' => 'search', 'size' => 18]); ?>
+        </button>
     </form>
 </section>
-<section class="section" aria-labelledby="years-title">
-    <h2 id="years-title">Browse by academic year</h2>
-    <p class="section-intro">Start with the level that matches your current studies.</p>
-    <div class="year-grid">
-        <?php foreach (['First Year', 'Second Year', 'Third Year'] as $year): ?>
-        <article class="year-card"><h3><?= $escape($year) ?></h3><p>Explore modules and their learning resources.</p><a href="<?= $url('site/resource', ['controller' => 'item', 'action' => 'browse'], ['query' => ['property' => [['property' => 14, 'type' => 'eq', 'text' => $year]]]], true) ?>">View resources</a></article>
+
+<section class="lv-section">
+    <h2>Browse by Year</h2>
+    <div class="lv-year-cards">
+        <?php foreach ($years as $year): ?>
+            <a class="lv-year-card" href="<?php echo $browseUrl(['property' => 'lisvault:studyYear', 'type' => 'eq', 'text' => $year]); ?>">
+                <span class="lv-year-card-title"><?php echo $this->escapeHtml($year); ?></span>
+                <span class="lv-year-card-link">View resources →</span>
+            </a>
         <?php endforeach; ?>
     </div>
 </section>
-<section class="section" aria-labelledby="modules-title">
-    <h2 id="modules-title">Explore modules</h2>
-    <p class="section-intro">Modules are managed in LISVault and update here automatically.</p>
-    <div class="module-grid">
-        <?php foreach ($modules as $module): ?>
-        <article class="module-card"><h3><a href="<?= $escape($module->siteUrl($site->slug(), 'show')) ?>"><?= $escape($module->displayTitle()) ?></a></h3><p><?= $escape($module->displayDescription()) ?></p></article>
+
+<section class="lv-section">
+    <h2>Browse by Type</h2>
+    <div class="lv-type-cards">
+        <?php foreach ($types as $type => $iconName): ?>
+            <a class="lv-type-card" href="<?php echo $browseUrl(['property' => 'lisvault:resourceType', 'type' => 'eq', 'text' => $type]); ?>">
+                <span class="lv-type-card-icon"><?php echo $this->partial('common/icon', ['name' => $iconName, 'size' => 26]); ?></span>
+                <span class="lv-type-card-title"><?php echo $this->escapeHtml($type); ?></span>
+            </a>
         <?php endforeach; ?>
     </div>
+</section>
+
+<section class="lv-section">
+    <h2>Recently Added</h2>
+    <?php if (count($recent) === 0): ?>
+        <?php echo $this->partial('common/empty-state', [
+            'title' => 'No resources yet',
+            'message' => 'Once resources are added, they will appear here.',
+        ]); ?>
+    <?php else: ?>
+        <div class="lv-resource-grid">
+            <?php foreach ($recent as $item): ?>
+                <?php echo $this->partial('common/resource-card', ['item' => $item, 'site' => $site]); ?>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 </section>

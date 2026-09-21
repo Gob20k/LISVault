@@ -1,0 +1,113 @@
+<?php
+$site = $this->currentSite();
+$currentQuery = $this->params()->fromQuery();
+
+$years = ['First Year', 'Second Year', 'Third Year'];
+$resourceTypes = ['Study Guide', 'Lecture Material', 'Book', 'Past Paper'];
+$languages = ['English', 'isiZulu', 'South African Sign Language'];
+$itemSets = $this->api()->search('item_sets', ['sort_by' => 'title'])->getContent();
+
+$searchText = $currentQuery['fulltext_search'] ?? '';
+$selectedYear = $currentQuery['year'] ?? '';
+$selectedType = $currentQuery['resource_type'] ?? '';
+$selectedLanguage = $currentQuery['language'] ?? '';
+$selectedModule = $currentQuery['item_set_id'] ?? '';
+
+$apiQuery = ['sort_by' => 'created', 'sort_order' => 'desc'];
+if ($searchText !== '') { $apiQuery['fulltext_search'] = $searchText; }
+if ($selectedModule !== '') { $apiQuery['item_set_id'] = [$selectedModule]; }
+$propertyFilters = [];
+if ($selectedYear !== '') { $propertyFilters[] = ['property' => 'lisvault:studyYear', 'type' => 'eq', 'text' => $selectedYear]; }
+if ($selectedType !== '') { $propertyFilters[] = ['property' => 'lisvault:resourceType', 'type' => 'eq', 'text' => $selectedType]; }
+if ($selectedLanguage !== '') { $propertyFilters[] = ['property' => 'dcterms:language', 'type' => 'eq', 'text' => $selectedLanguage]; }
+if ($propertyFilters) { $apiQuery['property'] = $propertyFilters; }
+
+$hasAnyFilter = $searchText !== '' || $selectedYear !== '' || $selectedType !== '' || $selectedLanguage !== '' || $selectedModule !== '';
+$response = $this->api()->search('items', $apiQuery);
+$items = $response->getContent();
+$total = $response->getTotalResults();
+
+$searchPageUrl = $this->url('site/resource', ['site-slug' => $site->slug(), 'controller' => 'item', 'action' => 'search']);
+$buildClearOneUrl = function ($paramToDrop) use ($currentQuery, $searchPageUrl) {
+    $query = $currentQuery;
+    unset($query[$paramToDrop]);
+    return $searchPageUrl . ($query ? '?' . http_build_query($query) : '');
+};
+?>
+
+<header class="lv-page-header"><h1>Search</h1></header>
+
+<form class="lv-search-panel" method="get">
+    <div class="lv-searchbar">
+        <span class="lv-searchbar-icon"><?php echo $this->partial('common/icon', ['name' => 'search', 'size' => 18]); ?></span>
+        <input type="text" name="fulltext_search" placeholder="Search resources..." value="<?php echo $this->escapeHtml($searchText); ?>">
+    </div>
+
+    <div class="lv-search-filters">
+        <label>Year
+            <select name="year">
+                <option value="">All</option>
+                <?php foreach ($years as $year): ?>
+                    <option value="<?php echo $this->escapeHtml($year); ?>" <?php echo $selectedYear === $year ? 'selected' : ''; ?>><?php echo $this->escapeHtml($year); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Module
+            <select name="item_set_id">
+                <option value="">All</option>
+                <?php foreach ($itemSets as $set): ?>
+                    <option value="<?php echo $set->id(); ?>" <?php echo (string) $selectedModule === (string) $set->id() ? 'selected' : ''; ?>><?php echo $this->escapeHtml($set->displayTitle()); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Resource Type
+            <select name="resource_type">
+                <option value="">All</option>
+                <?php foreach ($resourceTypes as $type): ?>
+                    <option value="<?php echo $this->escapeHtml($type); ?>" <?php echo $selectedType === $type ? 'selected' : ''; ?>><?php echo $this->escapeHtml($type); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Language
+            <select name="language">
+                <option value="">All</option>
+                <?php foreach ($languages as $lang): ?>
+                    <option value="<?php echo $this->escapeHtml($lang); ?>" <?php echo $selectedLanguage === $lang ? 'selected' : ''; ?>><?php echo $this->escapeHtml($lang); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+    </div>
+
+    <div class="lv-search-actions">
+        <button type="submit" class="lv-btn lv-btn-primary">Apply Filters</button>
+        <a class="lv-btn lv-btn-outline" href="<?php echo $searchPageUrl; ?>">Clear</a>
+    </div>
+</form>
+
+<?php if ($hasAnyFilter): ?>
+    <div class="lv-chip-row">
+        <?php if ($searchText !== ''): ?><a class="lv-chip lv-chip-removable" href="<?php echo $buildClearOneUrl('fulltext_search'); ?>">"<?php echo $this->escapeHtml($searchText); ?>" ✕</a><?php endif; ?>
+        <?php if ($selectedYear !== ''): ?><a class="lv-chip lv-chip-removable" href="<?php echo $buildClearOneUrl('year'); ?>"><?php echo $this->escapeHtml($selectedYear); ?> ✕</a><?php endif; ?>
+        <?php if ($selectedModule !== ''): ?><a class="lv-chip lv-chip-removable" href="<?php echo $buildClearOneUrl('item_set_id'); ?>">Module ✕</a><?php endif; ?>
+        <?php if ($selectedType !== ''): ?><a class="lv-chip lv-chip-removable" href="<?php echo $buildClearOneUrl('resource_type'); ?>"><?php echo $this->escapeHtml($selectedType); ?> ✕</a><?php endif; ?>
+        <?php if ($selectedLanguage !== ''): ?><a class="lv-chip lv-chip-removable" href="<?php echo $buildClearOneUrl('language'); ?>"><?php echo $this->escapeHtml($selectedLanguage); ?> ✕</a><?php endif; ?>
+    </div>
+<?php endif; ?>
+
+<p class="lv-result-count">Showing <?php echo $total; ?> resource<?php echo $total === 1 ? '' : 's'; ?></p>
+
+<?php if ($total === 0): ?>
+    <?php echo $this->partial('common/empty-state', [
+        'title' => 'No resources found',
+        'message' => "We couldn't find resources matching your search and selected filters.",
+        'actionUrl' => $searchPageUrl,
+        'actionLabel' => 'Clear filters',
+    ]); ?>
+<?php else: ?>
+    <div class="lv-resource-grid">
+        <?php foreach ($items as $item): ?>
+            <?php echo $this->partial('common/resource-card', ['item' => $item, 'site' => $site]); ?>
+        <?php endforeach; ?>
+    </div>
+    <?php /* No pagination() here either — same reason as the Module page. */ ?>
+<?php endif; ?>

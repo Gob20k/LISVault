@@ -1,0 +1,24 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \Omeka\Api\Representation\ItemSetRepresentation[] $itemSets
+ */
+?>
+<div id="lisvault-module-field" class="field">
+    <div class="field-meta">
+        <label for="lisvault-module-select">Module</label>
+        <div class="field-description">
+            The module this resource belongs to.
+        </div>
+    </div>
+    <div class="inputs">
+        <select id="lisvault-module-select">
+            <option value="">— Select a module —</option>
+            <?php foreach ($itemSets as $itemSet): ?>
+                <option value="<?php echo $itemSet->id(); ?>">
+                    <?php echo $this->escapeHtml($itemSet->displayTitle()); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+</div>
